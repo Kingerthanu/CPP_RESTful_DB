@@ -63,8 +63,10 @@ std::string Client::get(const std::string& key)
 void Client::close()
 {
 
-	// Close The Client Socket
-	Socket::closeSocket(this->socket_fd);
+	std::string demo = "555";
+
+	// Close The Connection
+	sendLine("EXIT");
 
 };
 

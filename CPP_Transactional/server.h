@@ -26,6 +26,6 @@ class Server
 		void start();
 		void stop();
 		void saveDatabase(const std::string& fileName);
-
+		void setRunning(const bool& state) { this->running = state; };
 
 };

@@ -8,6 +8,7 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
+
 class Socket
 {
 

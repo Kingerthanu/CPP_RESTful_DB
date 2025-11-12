@@ -1,61 +1,147 @@
 #include "client.h"
 #include "socket.h"
 #include "server.h"
+#include "settings.h"
 #include <iostream>
+#include <csignal>
 
+// Bool For Stopping Server
+Server* serverInstance;
 
-int main()
+void signalHandler(int signum)
 {
+	std::cout << "\nInterrupt signal (" << signum << ") received." << std::endl;
+	if (serverInstance != nullptr)
+	{
+		serverInstance->stop();
+	}
+}
+
+void startServer(const int& port)
+{
+
     try
-    {
-
+    { 
         std::cout << "\nStarting Initialization:" << std::endl;
-		std::cout << "=====================================" << std::endl;
+        std::cout << "=====================================" << std::endl;
         std::cout << "Starting server..." << std::endl;
+
         Server server(8080);
-        std::thread serverThread([&server]() { server.start(); });
+		serverInstance = &server;
+    
+	    std::cout << "Server Started On IP: (" << Settings::Networking::SERVER_IP << ") Port: (" << Settings::Networking::SERVER_PORT << ")\n";
+        std::cout << "=====================================" << std::endl;
 
-        std::cout << "Waiting for server to start..." << std::endl;
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+		signal(SIGINT, signalHandler);
+        server.start();
 
-		std::cout << "====================================\n\n\n";
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "Error: " << e.what() << std::endl;
+	}
 
+}
 
-        Client client("127.0.0.1", 8080);
-        std::cout << "Client connected." << std::endl;
+void startClient(const std::string& server_ip, const int& server_port)
+{
 
-        client.beginTransaction();
+    try
+    { 
+ 
+	    std::cout << "\nStarting Client Connection:" << std::endl;
+        std::cout << "=====================================" << std::endl;
+	    Client client(server_ip, server_port); 
+	    std::cout << "Client connected." << std::endl;
+        std::cout << "=====================================" << std::endl;
+
         
-        for (unsigned int indx = 1; indx < 100; indx++)
+        // Keep Looping Until User Exits
+		std::string command;
+        while (command != "EXIT")
         {
-			std::cout << "Inserting Key-Val Of: " << "key" + std::to_string(indx) << " : " << std::to_string(indx) << std::endl;
-			client.put("key" + std::to_string(indx), std::to_string(indx));
-        }
+			std::cout << "Query > ";
+			std::cin >> command;
 
-        client.commitTransaction();
+			if (command == "GET")
+			{
+				std::string key;
+				std::cin >> key;
+				std::string value = client.get(key);
+				std::cout << "Value: " << value << std::endl;
+			}
+			else if (command == "PUT")
+			{
+				std::string key, value;
+				std::cin >> key >> value;
+				client.put(key, value);
+				std::cout << "PUT operation completed." << std::endl;
+			}
+			else if (command == "BEGIN")
+			{
+				client.beginTransaction();
+				std::cout << "Transaction started." << std::endl;
+			}
+			else if (command == "ABORT")
+			{
+				client.abortTransaction();
+				std::cout << "Transaction aborted." << std::endl;
+			}
+			else if (command == "COMMIT")
+			{
+				client.commitTransaction();
+				std::cout << "Transaction committed." << std::endl;
+			}
+			else if (command == "EXIT")
+			{
+				std::cout << "Exiting client." << std::endl;
+			}
+			else
+			{
+				std::cout << "Unknown command. Available commands: GET, PUT, BEGIN, ABORT, COMMIT, EXIT" << std::endl;
+			}
+		}
 
-        std::string value1 = client.get("key1");
-        std::string value2 = client.get("key2");
-        std::cout << "key1: " << value1 << std::endl;
-        std::cout << "key2: " << value2 << std::endl;
-
-
-		server.saveDatabase("database.txt");
-		server.stop();
-        if (serverThread.joinable()) {
-            serverThread.join();
-        }
-
-        std::cout << "Program completed successfully!\n\n";
+		client.close();
 
     }
     catch (const std::exception& e)
     {
+		std::cerr << "Error: " << e.what() << std::endl;
+    }
 
-        std::cerr << "Error: " << e.what() << std::endl;
+}
+
+
+// Take In Arguments
+int main(int argc, char* argv[])
+{
+
+	if (argc > 1)
+	{
+		std::cout << "\nCPP_Transactional Application Starting With Arguments..." << std::endl;
+
+		if(std::string(argv[1]) == "server")
+        { 
+			startServer(Settings::Networking::SERVER_PORT);
+        }
+        else if (std::string(argv[1]) == "client")
+        {
+			startClient(Settings::Networking::SERVER_IP, Settings::Networking::SERVER_PORT);
+        }
+        else
+        {
+			std::cout << "Invalid Argument. Use 'server' or 'client'.\n" << std::endl;
+            return 1;
+        }
+
+	}
+    else
+    {
+		std::cout << "\nNo Argument Provided. Please specify 'server' or 'client'.\n" << std::endl;
         return 1;
-
     }
 
     return 0;
+
 }

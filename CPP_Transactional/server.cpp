@@ -1,8 +1,10 @@
 #include "server.h"
 #include "socket.h"
+#include "settings.h"
 #include <iostream>
 #include <thread>
 #include <sstream>
+
 
 
 Server::Server(const int& port)
@@ -10,7 +12,7 @@ Server::Server(const int& port)
 
 	// Create Server Socket On Given Port
 	this->server_fd = Socket::createServerSocket(port);
-	this->running = false;
+	this->running = true;
 
 	// Store Port For Reference
 	this->port_fd = port;
@@ -19,7 +21,10 @@ Server::Server(const int& port)
 
 Server::~Server()
 {
-	stop();
+	if(this->running)
+	{ 
+		stop();
+	}
 }
 
 void Server::saveDatabase(const std::string& fileName)
@@ -30,7 +35,6 @@ void Server::saveDatabase(const std::string& fileName)
 void Server::start()
 {
 
-	this->running = true;
 
 	// Listen For Incoming Connections
 	while (this->running)
@@ -43,7 +47,7 @@ void Server::start()
 			
 			// Wait A Bit Before Accepting Next Connection
 			std::this_thread::sleep_for(std::chrono::seconds(1));
-
+			
 		}
 		catch (const std::exception& e)
 		{
@@ -54,6 +58,8 @@ void Server::start()
 		}
 
 	}
+
+	
 
 };
 
@@ -88,9 +94,18 @@ void Server::readLine(int client_fd, std::string& line)
 
 };
 
+
+
 void Server::stop()
 {
+
 	this->running = false;
+	
+	// Save Database Before Shutting Down
+	std::cout << "Shutting down server. Saving database..." << std::endl;
+	saveDatabase(Settings::Server::DATABASE_FILE);
+	std::cout << "Database saved. Server stopped." << std::endl;
+
 	Socket::closeSocket(this->server_fd);
 };
 
@@ -158,6 +173,7 @@ void Server::handleClient(const int client_fd)
 			else if (command == "EXIT")
 			{
 				// Close Connection
+				std::cout << "Client " << clientID << " disconnected." << std::endl;
 				break;
 			}
 			else

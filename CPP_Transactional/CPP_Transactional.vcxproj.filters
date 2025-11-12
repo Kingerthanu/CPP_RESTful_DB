@@ -27,6 +27,9 @@
     <ClInclude Include="socket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="settings.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="broker.cpp">
